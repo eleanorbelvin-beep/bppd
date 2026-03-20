@@ -1,0 +1,1028 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="BPPD">
+<title>Big Paper Planning Day</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Mono:wght@300;400&family=Lora:ital@0;1&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --terra: #C4714A;
+    --sand: #E8D5B7;
+    --cream: #F5EFE4;
+    --sage: #8A9E85;
+    --dust: #B8A898;
+    --dark: #2C2420;
+    --warm-mid: #6B4F3A;
+    --gold: #D4A843;
+    --pale-sage: #D4DDD2;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--cream);
+    color: var(--dark);
+    font-family: 'Lora', serif;
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    overflow-x: hidden;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0.4;
+  }
+
+  .app {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+
+  .header { margin-bottom: 40px; }
+
+  .header-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--dust);
+    margin-bottom: 8px;
+  }
+
+  .header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(26px, 5vw, 38px);
+    font-weight: 400;
+    color: var(--dark);
+    line-height: 1.1;
+  }
+
+  .header h1 em { color: var(--terra); font-style: italic; }
+
+  .date-line {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--dust);
+    margin-top: 10px;
+    letter-spacing: 0.08em;
+  }
+
+  .quarter-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 36px;
+    flex-wrap: wrap;
+  }
+
+  .quarter-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    border: 1px solid var(--dust);
+    background: transparent;
+    color: var(--dust);
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s;
+  }
+
+  .quarter-btn.active { background: var(--terra); border-color: var(--terra); color: white; }
+  .quarter-btn:hover:not(.active) { border-color: var(--terra); color: var(--terra); }
+
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--dust);
+    margin-bottom: 14px;
+  }
+
+  .energy-row { display: flex; gap: 12px; margin-bottom: 40px; }
+
+  .energy-btn {
+    flex: 1;
+    padding: 16px;
+    border: 1.5px solid var(--sand);
+    background: white;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.25s;
+    text-align: left;
+  }
+
+  .energy-btn:hover { border-color: var(--terra); }
+  .energy-btn.active.high { background: var(--terra); border-color: var(--terra); color: white; }
+  .energy-btn.active.low { background: var(--sage); border-color: var(--sage); color: white; }
+
+  .energy-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 15px;
+    font-weight: 600;
+    display: block;
+    margin-bottom: 3px;
+  }
+
+  .energy-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    opacity: 0.7;
+  }
+
+  .goals-section { display: flex; flex-direction: column; gap: 32px; margin-bottom: 48px; }
+
+  .goal-card { border-left: 3px solid var(--sand); padding-left: 20px; }
+  .goal-card.goal-0 { border-left-color: var(--terra); }
+  .goal-card.goal-1 { border-left-color: var(--sage); }
+  .goal-card.goal-2 { border-left-color: var(--gold); }
+
+  .goal-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 17px;
+    font-weight: 400;
+    font-style: italic;
+    color: var(--dark);
+    margin-bottom: 5px;
+    line-height: 1.3;
+  }
+
+  .goal-values {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--dust);
+    margin-bottom: 14px;
+  }
+
+  .actions-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .action-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    cursor: pointer;
+    padding: 10px 14px;
+    border-radius: 3px;
+    background: white;
+    border: 1px solid var(--sand);
+    transition: all 0.2s;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .action-item:hover { border-color: var(--dust); }
+  .action-item:active { transform: scale(0.99); }
+
+  .action-item.checked { background: var(--pale-sage); border-color: var(--sage); opacity: 0.85; }
+  .goal-card.goal-0 .action-item.checked { background: #f5e6de; border-color: var(--terra); }
+  .goal-card.goal-2 .action-item.checked { background: #f7eedb; border-color: var(--gold); }
+
+  .check-box {
+    width: 16px;
+    height: 16px;
+    border: 1.5px solid var(--dust);
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .action-item.checked .check-box { background: var(--sage); border-color: var(--sage); }
+  .goal-card.goal-0 .action-item.checked .check-box { background: var(--terra); border-color: var(--terra); }
+  .goal-card.goal-2 .action-item.checked .check-box { background: var(--gold); border-color: var(--gold); }
+
+  .check-mark { color: white; font-size: 9px; display: none; }
+  .action-item.checked .check-mark { display: block; }
+
+  .action-text { font-size: 13.5px; line-height: 1.45; color: var(--dark); }
+  .action-item.checked .action-text { text-decoration: line-through; color: var(--dust); }
+
+  .gold-star-section {
+    background: white;
+    border: 1.5px solid var(--sand);
+    border-radius: 4px;
+    padding: 24px;
+    margin-bottom: 40px;
+  }
+
+  .gold-star-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .star-icon { font-size: 20px; }
+  .gold-star-title { font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 600; }
+
+  .gold-star-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--dust);
+    margin-bottom: 14px;
+  }
+
+  .gold-star-input {
+    width: 100%;
+    border: none;
+    border-bottom: 1px solid var(--sand);
+    background: transparent;
+    font-family: 'Lora', serif;
+    font-size: 14px;
+    color: var(--dark);
+    padding: 8px 0;
+    outline: none;
+    resize: none;
+    min-height: 40px;
+  }
+
+  .gold-star-input::placeholder { color: var(--dust); font-style: italic; }
+
+  .save-star-btn {
+    margin-top: 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 8px 18px;
+    background: var(--gold);
+    border: none;
+    color: white;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: opacity 0.2s;
+  }
+
+  .save-star-btn:hover { opacity: 0.85; }
+
+  .stars-log { margin-top: 16px; display: flex; flex-direction: column; gap: 8px; }
+
+  .star-entry {
+    font-size: 13px;
+    color: var(--warm-mid);
+    font-style: italic;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--sand);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .star-entry-date {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    color: var(--dust);
+    white-space: nowrap;
+    margin-top: 2px;
+    flex-shrink: 0;
+  }
+
+  .summary-bar {
+    display: flex;
+    gap: 20px;
+    padding: 20px 24px;
+    background: var(--dark);
+    border-radius: 4px;
+    margin-bottom: 40px;
+  }
+
+  .summary-item { flex: 1; text-align: center; }
+
+  .summary-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    color: var(--sand);
+    display: block;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .summary-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--dust);
+  }
+
+  .history-section { margin-bottom: 40px; }
+
+  .history-toggle {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--terra);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .history-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .history-entry {
+    padding: 14px 18px;
+    background: white;
+    border: 1px solid var(--sand);
+    border-radius: 3px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .history-date { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--dust); letter-spacing: 0.08em; }
+  .history-count { font-family: 'Playfair Display', serif; font-size: 13px; color: var(--warm-mid); font-style: italic; }
+  .history-energy { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--dust); }
+
+  /* Setup */
+  .setup-screen { display: none; }
+  .setup-screen.active { display: block; }
+  .main-screen { display: none; }
+  .main-screen.active { display: block; }
+
+  .setup-intro { font-size: 15px; line-height: 1.7; color: var(--warm-mid); margin-bottom: 32px; }
+  .setup-section { margin-bottom: 28px; }
+
+  .setup-section-title { font-family: 'Playfair Display', serif; font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+
+  .setup-section-sub {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--dust);
+    margin-bottom: 14px;
+  }
+
+  .setup-input {
+    width: 100%;
+    border: 1px solid var(--sand);
+    border-radius: 3px;
+    background: white;
+    font-family: 'Lora', serif;
+    font-size: 14px;
+    color: var(--dark);
+    padding: 12px 14px;
+    outline: none;
+    margin-bottom: 10px;
+  }
+
+  .setup-input:focus { border-color: var(--terra); }
+  .setup-input::placeholder { color: var(--dust); font-style: italic; }
+
+  .actions-setup { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+
+  .action-setup-row { display: flex; gap: 8px; align-items: center; }
+
+  .action-setup-input {
+    flex: 1;
+    border: 1px solid var(--sand);
+    border-radius: 3px;
+    background: white;
+    font-family: 'Lora', serif;
+    font-size: 13px;
+    color: var(--dark);
+    padding: 8px 12px;
+    outline: none;
+  }
+
+  .action-setup-input:focus { border-color: var(--terra); }
+
+  .remove-action-btn {
+    width: 24px;
+    height: 24px;
+    border: 1px solid var(--sand);
+    background: transparent;
+    color: var(--dust);
+    cursor: pointer;
+    border-radius: 50%;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.2s;
+  }
+
+  .remove-action-btn:hover { border-color: var(--terra); color: var(--terra); }
+
+  .add-action-btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    background: none;
+    border: 1px dashed var(--dust);
+    color: var(--dust);
+    padding: 7px 14px;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s;
+  }
+
+  .add-action-btn:hover { border-color: var(--terra); color: var(--terra); }
+
+  .energy-label-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+
+  .energy-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 2px;
+  }
+
+  .badge-high { background: var(--terra); color: white; }
+  .badge-low { background: var(--sage); color: white; }
+
+  .big-btn {
+    width: 100%;
+    padding: 18px;
+    background: var(--terra);
+    border: none;
+    color: white;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: opacity 0.2s;
+    margin-top: 8px;
+  }
+
+  .big-btn:hover { opacity: 0.88; }
+  .big-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .quarter-setup {
+    padding: 20px 24px;
+    background: white;
+    border: 1px solid var(--sand);
+    border-radius: 4px;
+    margin-bottom: 32px;
+  }
+
+  .quarter-setup-row { display: flex; gap: 12px; margin-bottom: 12px; align-items: flex-end; flex-wrap: wrap; }
+  .quarter-setup-field { flex: 1; min-width: 120px; }
+
+  .field-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--dust);
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  .divider { border: none; border-top: 1px solid var(--sand); margin: 28px 0; }
+
+  .nav-link {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--terra);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    margin-bottom: 40px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--dark);
+    color: var(--sand);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    padding: 12px 24px;
+    border-radius: 3px;
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+    z-index: 200;
+    white-space: nowrap;
+  }
+
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  .loading-screen {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--dust);
+  }
+
+  @media (max-width: 480px) {
+    .app { padding: 32px 18px 80px; }
+    .energy-row { flex-direction: column; }
+    .summary-bar { flex-wrap: wrap; gap: 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="loading-screen" id="loadingScreen">Loading...</div>
+  <div class="setup-screen" id="setupScreen"></div>
+  <div class="main-screen" id="mainScreen"></div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://owaypuzikzlaaocpbqwz.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im93YXlwdXppa3psYWFvY3BicXd6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwMjMwOTcsImV4cCI6MjA4OTU5OTA5N30.JkNSZ313-nLIFl1m5_IBimxa07lN_oQIFVMfCrG3QPg';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const GOAL_COLORS = ['goal-0','goal-1','goal-2'];
+
+let state = {
+  quarters: [],
+  activeQuarterId: null,
+  today: { energy: 'high', checked: {}, date: todayStr() }
+};
+
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+
+function formatDate(str) {
+  const d = new Date(str + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric' });
+}
+
+// ─── DB ──────────────────────────────────────────────────────────────────────
+
+async function loadQuarters() {
+  const { data } = await sb.from('quarters').select('*').order('created_at', { ascending: true });
+  return data || [];
+}
+
+async function upsertQuarter(q) {
+  await sb.from('quarters').upsert({
+    id: q.id, name: q.name, start_date: q.start, end_date: q.end, goals: q.goals
+  });
+}
+
+async function loadCheckin(quarterId, date) {
+  const { data } = await sb.from('checkins').select('*').eq('quarter_id', quarterId).eq('date', date).single();
+  return data;
+}
+
+async function upsertCheckin(quarterId, date, energy, checked) {
+  await sb.from('checkins').upsert({
+    id: quarterId + '-' + date,
+    quarter_id: quarterId, date, energy, checked
+  });
+}
+
+async function loadHistory(quarterId) {
+  const { data } = await sb.from('checkins').select('*').eq('quarter_id', quarterId).order('date', { ascending: false });
+  return data || [];
+}
+
+async function loadStars(quarterId) {
+  const { data } = await sb.from('stars').select('*').eq('quarter_id', quarterId).order('created_at', { ascending: false });
+  return data || [];
+}
+
+async function insertStar(quarterId, text) {
+  await sb.from('stars').insert({ quarter_id: quarterId, date: todayStr(), text });
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+
+async function init() {
+  document.getElementById('loadingScreen').style.display = 'flex';
+  try {
+    state.quarters = await loadQuarters();
+    if (state.quarters.length > 0) {
+      // Normalize shape
+      state.quarters = state.quarters.map(q => ({
+        id: q.id, name: q.name, start: q.start_date, end: q.end_date, goals: q.goals
+      }));
+      state.activeQuarterId = state.quarters[state.quarters.length - 1].id;
+
+      // Load today's checkin
+      const ci = await loadCheckin(state.activeQuarterId, todayStr());
+      if (ci) {
+        state.today = { energy: ci.energy || 'high', checked: ci.checked || {}, date: todayStr() };
+      }
+
+      document.getElementById('loadingScreen').style.display = 'none';
+      await showMain();
+    } else {
+      document.getElementById('loadingScreen').style.display = 'none';
+      showSetupScreen();
+    }
+  } catch(e) {
+    document.getElementById('loadingScreen').style.display = 'none';
+    showSetupScreen();
+  }
+}
+
+// ─── Setup ───────────────────────────────────────────────────────────────────
+
+function showSetupScreen() {
+  document.getElementById('mainScreen').classList.remove('active');
+  document.getElementById('mainScreen').innerHTML = '';
+  document.getElementById('setupScreen').classList.add('active');
+  renderSetup();
+}
+
+function renderSetup() {
+  const container = document.getElementById('setupScreen');
+
+  const prefill = [
+    {
+      name: "Show up as someone who belongs anywhere",
+      values: "Ease · Warmth · Presence",
+      high: ["Say the thing you're thinking instead of editing it","Make plans with a friend you haven't seen in a while","Go somewhere alone and just exist in public","Introduce yourself to someone new without a reason to","Get dressed with intention, even for errands"],
+      low: ["Text one person something real","Put on an outfit you feel good in before leaving","Watch something that reminds you of the version of yourself you like","Sit outside, even for ten minutes"]
+    },
+    {
+      name: "Live in a body and a home worth coming back to",
+      values: "Care · Rootedness · Craft",
+      high: ["Lift — five days if you can, don't spiral if you can't","Cook something real instead of ordering","Go to pottery — make another mug, don't skip","Do one thing to make your apartment feel more like home","Morning routine that includes your skin"],
+      low: ["Stretch or walk — movement in any form counts","Do one small thing in your space that feels less chaotic","Wash and style your hair even when you don't feel like it","Watch a pottery video, stay connected to the craft"]
+    },
+    {
+      name: "Trust that I have something worth giving",
+      values: "Trust · Courage · Generosity",
+      high: ["Check your accounts — actually look, don't avoid","Say yes to something socially that scares you a little","Let yourself be taken care of without deflecting","Do one thing that is purely for your future self","Cook instead of ordering as proof you can take care of yourself"],
+      low: ["Don't make a purchase you haven't thought about for 24 hours","Text a friend instead of ordering food out of boredom","Write down one thing you brought to a situation this week","Sit with wanting something without immediately trying to fill it"]
+    }
+  ];
+
+  const goalColors = ['#C4714A','#8A9E85','#D4A843'];
+
+  let goalsHTML = '';
+  for (let i = 0; i < 3; i++) {
+    const g = prefill[i];
+    const highRows = g.high.map(a => `<div class="action-setup-row"><input class="action-setup-input" value="${a}" type="text"><button class="remove-action-btn" onclick="removeAction(this)">×</button></div>`).join('');
+    const lowRows = g.low.map(a => `<div class="action-setup-row"><input class="action-setup-input" value="${a}" type="text"><button class="remove-action-btn" onclick="removeAction(this)">×</button></div>`).join('');
+
+    goalsHTML += `
+    <div class="setup-section">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+        <div style="width:12px;height:12px;border-radius:50%;background:${goalColors[i]};flex-shrink:0"></div>
+        <div class="setup-section-title">Goal ${i+1}</div>
+      </div>
+      <div class="setup-section-sub">Abstract goal — your desired state of being</div>
+      <input type="text" class="setup-input" id="goalName${i}" value="${g.name}" placeholder="Your abstract goal">
+      <input type="text" class="setup-input" id="goalValues${i}" value="${g.values}" placeholder="Values (e.g. Ease · Warmth)">
+      <div style="margin-top:14px">
+        <div class="energy-label-row">
+          <span class="energy-badge badge-high">High Energy</span>
+        </div>
+        <div class="actions-setup" id="highActions${i}">${highRows}</div>
+        <button class="add-action-btn" onclick="addAction(${i},'high')">+ Add action</button>
+      </div>
+      <div style="margin-top:14px">
+        <div class="energy-label-row">
+          <span class="energy-badge badge-low">Low Energy</span>
+        </div>
+        <div class="actions-setup" id="lowActions${i}">${lowRows}</div>
+        <button class="add-action-btn" onclick="addAction(${i},'low')">+ Add action</button>
+      </div>
+      ${i < 2 ? '<hr class="divider">' : ''}
+    </div>`;
+  }
+
+  // Default dates
+  const today = todayStr();
+  const endDate = new Date();
+  endDate.setMonth(endDate.getMonth() + 3);
+  const endStr = endDate.toISOString().split('T')[0];
+
+  container.innerHTML = `
+    <div class="header">
+      <div class="header-eyebrow">Big Paper Planning Day</div>
+      <h1>Set up your <em>quarter</em></h1>
+    </div>
+    <p class="setup-intro">Name your quarter, enter your three abstract goals, and build your action menus. You only do this once per quarter.</p>
+    <div class="quarter-setup">
+      <div class="section-label">Quarter Details</div>
+      <div class="quarter-setup-row">
+        <div class="quarter-setup-field">
+          <label class="field-label">Quarter Name</label>
+          <input type="text" class="setup-input" id="quarterName" value="Spring 2026" style="margin-bottom:0">
+        </div>
+        <div class="quarter-setup-field">
+          <label class="field-label">Start Date</label>
+          <input type="date" class="setup-input" id="quarterStart" value="${today}" style="margin-bottom:0">
+        </div>
+        <div class="quarter-setup-field">
+          <label class="field-label">End Date</label>
+          <input type="date" class="setup-input" id="quarterEnd" value="${endStr}" style="margin-bottom:0">
+        </div>
+      </div>
+    </div>
+    ${goalsHTML}
+    <button class="big-btn" id="beginBtn" onclick="saveSetup()">→ Begin This Quarter</button>
+  `;
+}
+
+function addAction(goalIndex, energy) {
+  const container = document.getElementById(`${energy}Actions${goalIndex}`);
+  const row = document.createElement('div');
+  row.className = 'action-setup-row';
+  row.innerHTML = `<input class="action-setup-input" placeholder="Add an action..." type="text"><button class="remove-action-btn" onclick="removeAction(this)">×</button>`;
+  container.appendChild(row);
+}
+
+function removeAction(btn) {
+  const row = btn.closest('.action-setup-row');
+  const container = row.parentElement;
+  if (container.children.length > 1) row.remove();
+}
+
+async function saveSetup() {
+  const name = document.getElementById('quarterName').value.trim();
+  const start = document.getElementById('quarterStart').value;
+  const end = document.getElementById('quarterEnd').value;
+  if (!name || !start || !end) { showToast('Fill in quarter details'); return; }
+
+  const goals = [];
+  for (let i = 0; i < 3; i++) {
+    const goalName = document.getElementById(`goalName${i}`).value.trim();
+    if (!goalName) { showToast(`Enter goal ${i+1}`); return; }
+    const goalValues = document.getElementById(`goalValues${i}`).value.trim();
+    const highInputs = document.querySelectorAll(`#highActions${i} .action-setup-input`);
+    const lowInputs = document.querySelectorAll(`#lowActions${i} .action-setup-input`);
+    goals.push({
+      name: goalName,
+      values: goalValues,
+      actions: {
+        high: Array.from(highInputs).map(el => el.value.trim()).filter(Boolean),
+        low: Array.from(lowInputs).map(el => el.value.trim()).filter(Boolean)
+      }
+    });
+  }
+
+  const btn = document.getElementById('beginBtn');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  const quarter = { id: 'q-' + Date.now(), name, start, end, goals };
+
+  try {
+    await upsertQuarter(quarter);
+    state.quarters.push(quarter);
+    state.activeQuarterId = quarter.id;
+    state.today = { energy: 'high', checked: {}, date: todayStr() };
+    document.getElementById('setupScreen').classList.remove('active');
+    document.getElementById('setupScreen').innerHTML = '';
+    await showMain();
+  } catch(e) {
+    showToast('Error saving — check connection');
+    btn.disabled = false;
+    btn.textContent = '→ Begin This Quarter';
+  }
+}
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
+
+async function showMain() {
+  document.getElementById('mainScreen').classList.add('active');
+  await renderMain();
+}
+
+async function renderMain() {
+  const q = activeQuarter();
+  if (!q) { showSetupScreen(); return; }
+
+  const screen = document.getElementById('mainScreen');
+  screen.innerHTML = `
+    <div class="header">
+      <div class="header-eyebrow">Big Paper Planning Day</div>
+      <h1>Daily <em>Check-In</em></h1>
+      <div class="date-line">${formatDate(todayStr())} · ${q.name}</div>
+    </div>
+    <div class="quarter-bar" id="quarterBar"></div>
+    <div class="section-label">Today's energy</div>
+    <div class="energy-row">
+      <button class="energy-btn high ${state.today.energy === 'high' ? 'active' : ''}" id="highBtn" onclick="setEnergy('high')">
+        <span class="energy-title">High Energy</span>
+        <span class="energy-sub">Firing on all cylinders</span>
+      </button>
+      <button class="energy-btn low ${state.today.energy === 'low' ? 'active' : ''}" id="lowBtn" onclick="setEnergy('low')">
+        <span class="energy-title">Low Energy</span>
+        <span class="energy-sub">Gentle mode</span>
+      </button>
+    </div>
+    <div class="section-label">Today's actions</div>
+    <div class="goals-section" id="goalsSection"></div>
+    <div class="summary-bar">
+      <div class="summary-item"><span class="summary-num" id="todayCount">0</span><span class="summary-label">Today</span></div>
+      <div class="summary-item"><span class="summary-num" id="weekCount">—</span><span class="summary-label">This Week</span></div>
+      <div class="summary-item"><span class="summary-num" id="starsCount">—</span><span class="summary-label">Gold Stars</span></div>
+      <div class="summary-item"><span class="summary-num" id="daysCount">—</span><span class="summary-label">Days In</span></div>
+    </div>
+    <div class="gold-star-section">
+      <div class="gold-star-header"><span class="star-icon">★</span><span class="gold-star-title">Gold Star</span></div>
+      <div class="gold-star-sub">One thing you did today that counts — however small</div>
+      <textarea class="gold-star-input" id="goldStarInput" placeholder="I made my coffee at home. I texted her back. I went outside." rows="2"></textarea>
+      <button class="save-star-btn" onclick="saveStarEntry()">Log it</button>
+      <div class="stars-log" id="starsLog"></div>
+    </div>
+    <div class="history-section">
+      <button class="history-toggle" onclick="toggleHistory()"><span id="historyArrow">↓</span> Past check-ins</button>
+      <div class="history-list" id="historyList" style="display:none"></div>
+    </div>
+    <button class="nav-link" onclick="showSetupScreen()">+ New Quarter</button>
+  `;
+
+  renderQuarterBar();
+  renderGoals(q);
+  updateTodayCount();
+  loadSummaryAsync(q);
+  loadStarsAsync(q);
+}
+
+function activeQuarter() {
+  return state.quarters.find(q => q.id === state.activeQuarterId) || state.quarters[state.quarters.length - 1];
+}
+
+function renderQuarterBar() {
+  const bar = document.getElementById('quarterBar');
+  if (!bar) return;
+  bar.innerHTML = '';
+  state.quarters.forEach(q => {
+    const btn = document.createElement('button');
+    btn.className = 'quarter-btn' + (q.id === state.activeQuarterId ? ' active' : '');
+    btn.textContent = q.name;
+    btn.onclick = async () => {
+      state.activeQuarterId = q.id;
+      const ci = await loadCheckin(q.id, todayStr());
+      state.today = ci
+        ? { energy: ci.energy || 'high', checked: ci.checked || {}, date: todayStr() }
+        : { energy: 'high', checked: {}, date: todayStr() };
+      await renderMain();
+    };
+    bar.appendChild(btn);
+  });
+}
+
+function renderGoals(q) {
+  const section = document.getElementById('goalsSection');
+  if (!section) return;
+  section.innerHTML = '';
+  q.goals.forEach((goal, gi) => {
+    const actions = goal.actions[state.today.energy] || [];
+    const card = document.createElement('div');
+    card.className = `goal-card ${GOAL_COLORS[gi]}`;
+    const actionsHTML = actions.map((action, ai) => {
+      const key = `${gi}-${state.today.energy}-${ai}`;
+      const checked = state.today.checked[key] ? 'checked' : '';
+      return `<div class="action-item ${checked}" onclick="toggleAction(${gi},${ai},'${state.today.energy}')">
+        <div class="check-box"><span class="check-mark">✓</span></div>
+        <span class="action-text">${action}</span>
+      </div>`;
+    }).join('');
+    card.innerHTML = `
+      <div class="goal-name">${goal.name}</div>
+      <div class="goal-values">${goal.values || ''}</div>
+      <div class="actions-list">${actionsHTML}</div>`;
+    section.appendChild(card);
+  });
+}
+
+async function setEnergy(level) {
+  state.today.energy = level;
+  const hb = document.getElementById('highBtn');
+  const lb = document.getElementById('lowBtn');
+  if (hb) { hb.classList.toggle('active', level === 'high'); }
+  if (lb) { lb.classList.toggle('active', level === 'low'); }
+  renderGoals(activeQuarter());
+  await upsertCheckin(state.activeQuarterId, state.today.date, level, state.today.checked);
+}
+
+async function toggleAction(goalIndex, actionIndex, energy) {
+  const key = `${goalIndex}-${energy}-${actionIndex}`;
+  state.today.checked[key] = !state.today.checked[key];
+  renderGoals(activeQuarter());
+  updateTodayCount();
+  await upsertCheckin(state.activeQuarterId, state.today.date, state.today.energy, state.today.checked);
+}
+
+function updateTodayCount() {
+  const el = document.getElementById('todayCount');
+  if (el) el.textContent = Object.values(state.today.checked).filter(Boolean).length;
+}
+
+async function loadSummaryAsync(q) {
+  const start = new Date(q.start + 'T00:00:00');
+  const daysIn = Math.max(1, Math.round((new Date() - start) / 86400000) + 1);
+  const daysEl = document.getElementById('daysCount');
+  if (daysEl) daysEl.textContent = daysIn;
+
+  const history = await loadHistory(q.id);
+  const oneWeekAgo = new Date();
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+  const weekStr = oneWeekAgo.toISOString().split('T')[0];
+  const weekTotal = history
+    .filter(e => e.date >= weekStr)
+    .reduce((sum, e) => sum + Object.values(e.checked || {}).filter(Boolean).length, 0);
+  const weekEl = document.getElementById('weekCount');
+  if (weekEl) weekEl.textContent = weekTotal;
+}
+
+async function loadStarsAsync(q) {
+  const stars = await loadStars(q.id);
+  const starsEl = document.getElementById('starsCount');
+  if (starsEl) starsEl.textContent = stars.length;
+
+  const log = document.getElementById('starsLog');
+  if (!log) return;
+  if (stars.length === 0) { log.innerHTML = ''; return; }
+  log.innerHTML = stars.slice(0,8).map(s => `
+    <div class="star-entry">
+      <span>★ ${s.text}</span>
+      <span class="star-entry-date">${formatDate(s.date)}</span>
+    </div>`).join('');
+}
+
+async function saveStarEntry() {
+  const q = activeQuarter();
+  if (!q) return;
+  const text = document.getElementById('goldStarInput').value.trim();
+  if (!text) return;
+  await insertStar(q.id, text);
+  document.getElementById('goldStarInput').value = '';
+  await loadStarsAsync(q);
+  showToast('★ Gold star logged');
+}
+
+async function toggleHistory() {
+  const list = document.getElementById('historyList');
+  const arrow = document.getElementById('historyArrow');
+  if (!list) return;
+  const isHidden = list.style.display === 'none';
+  if (isHidden) {
+    list.style.display = 'flex';
+    if (arrow) arrow.textContent = '↑';
+    const q = activeQuarter();
+    const history = await loadHistory(q.id);
+    if (history.length === 0) {
+      list.innerHTML = '<div style="font-family:\'DM Mono\',monospace;font-size:10px;color:var(--dust);letter-spacing:0.1em">No past check-ins yet.</div>';
+      return;
+    }
+    list.innerHTML = history.slice(0,20).map(e => {
+      const count = Object.values(e.checked || {}).filter(Boolean).length;
+      return `<div class="history-entry">
+        <span class="history-date">${formatDate(e.date)}</span>
+        <span class="history-count">${count} action${count !== 1 ? 's' : ''}</span>
+        <span class="history-energy">${e.energy || ''}</span>
+      </div>`;
+    }).join('');
+  } else {
+    list.style.display = 'none';
+    if (arrow) arrow.textContent = '↓';
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+init();
+</script>
+</body>
+</html>
