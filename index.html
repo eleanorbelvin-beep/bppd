@@ -206,6 +206,23 @@ body {
 .target-setup-goal { width:56px; border:1px solid rgba(255,255,255,0.1); border-radius:10px; background:rgba(255,255,255,0.04); font-family:'DM Mono',monospace; font-size:12px; color:var(--text); padding:10px 8px; outline:none; text-align:center; transition:border-color 0.2s; }
 .target-setup-goal:focus { border-color:var(--coral); }
 .target-setup-mo { font-size:8px; letter-spacing:0.1em; color:var(--text-dimmer); white-space:nowrap; }
+.target-month-tabs { display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap; }
+.target-month-tab { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.15em; text-transform:uppercase; padding:7px 14px; border:1px solid var(--glass-border); background:var(--glass); color:var(--text-dim); cursor:pointer; border-radius:100px; transition:all 0.25s; backdrop-filter:blur(10px); touch-action:manipulation; }
+.target-month-tab.active { background:var(--coral); border-color:var(--coral); color:white; box-shadow:0 0 16px rgba(232,113,74,0.3); }
+.target-hypothesis { width:100%; background:transparent; border:none; border-bottom:1px solid rgba(255,255,255,0.08); font-family:'Cormorant Garamond',serif; font-size:14px; font-style:italic; color:var(--text-dimmer); padding:2px 0 8px; outline:none; margin-bottom:14px; transition:border-color 0.2s; }
+.target-hypothesis:focus { border-bottom-color:rgba(255,255,255,0.25); color:var(--text); }
+.target-hypothesis::placeholder { color:var(--text-dimmer); opacity:0.5; }
+.target-card.target-0.complete { border-color:rgba(232,113,74,0.6); box-shadow:0 0 30px rgba(232,113,74,0.12),inset 0 1px 0 rgba(255,255,255,0.08); background:rgba(232,113,74,0.07); }
+.target-card.target-1.complete { border-color:rgba(138,111,212,0.6); box-shadow:0 0 30px rgba(138,111,212,0.12),inset 0 1px 0 rgba(255,255,255,0.08); background:rgba(138,111,212,0.07); }
+.target-card.target-2.complete { border-color:rgba(212,168,67,0.6); box-shadow:0 0 30px rgba(212,168,67,0.12),inset 0 1px 0 rgba(255,255,255,0.08); background:rgba(212,168,67,0.07); }
+.target-card.target-0.complete .target-num { color:var(--r1); }
+.target-card.target-1.complete .target-num { color:var(--r2); }
+.target-card.target-2.complete .target-num { color:var(--r3); }
+.target-complete-badge { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.15em; text-transform:uppercase; padding:5px 12px; border-radius:100px; }
+.target-card.target-0 .target-complete-badge { background:rgba(232,113,74,0.15); color:var(--r1); border:1px solid rgba(232,113,74,0.3); }
+.target-card.target-1 .target-complete-badge { background:rgba(138,111,212,0.15); color:var(--r2); border:1px solid rgba(138,111,212,0.3); }
+.target-card.target-2 .target-complete-badge { background:rgba(212,168,67,0.15); color:var(--r3); border:1px solid rgba(212,168,67,0.3); }
+.target-log-btn:disabled { opacity:0.35; cursor:not-allowed; transform:none !important; }
 </style>
 </head>
 <body>
@@ -232,8 +249,8 @@ let state={quarters:[],activeQuarterId:null,today:{energy:'high',checked:{},date
 function todayStr(){return new Date().toISOString().split('T')[0];}
 function formatDate(str){const d=new Date(str+'T00:00:00');return d.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});}
 function formatDateShort(str){const d=new Date(str+'T00:00:00');return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});}
-function currentMonth(){return new Date().toISOString().slice(0,7);}
-function currentMonthLabel(){return new Date().toLocaleDateString('en-US',{month:'long'});}
+function quarterMonthStr(q,mi){const d=new Date(q.start+'T00:00:00');d.setMonth(d.getMonth()+mi);return d.toISOString().slice(0,7);}
+function quarterMonthName(q,mi){const d=new Date(q.start+'T00:00:00');d.setMonth(d.getMonth()+mi);return d.toLocaleDateString('en-US',{month:'long'});}
 async function loadQuarters(){const{data}=await sb.from('quarters').select('*').order('created_at',{ascending:true});return data||[];}
 async function upsertQuarter(q){await sb.from('quarters').upsert({id:q.id,name:q.name,start_date:q.start,end_date:q.end,goals:q.goals,targets:q.targets||[]});}
 async function loadCheckin(quarterId,date){const{data}=await sb.from('checkins').select('*').eq('quarter_id',quarterId).eq('date',date).single();return data;}
@@ -284,8 +301,8 @@ function renderSetup(){
     const lowRows=g.low.map(a=>`<div class="action-setup-row"><input class="action-setup-input" value="${a}" type="text"><button class="remove-action-btn" onclick="removeAction(this)">×</button></div>`).join('');
     goalsHTML+=`<div class="setup-card"><div style="display:flex;align-items:center;gap:10px;margin-bottom:4px"><div class="goal-color-dot" style="background:${goalDots[i]}"></div><div class="setup-section-title">Goal ${i+1}</div></div><div class="setup-section-sub">Abstract goal — your desired state of being</div><input type="text" class="setup-input" id="goalName${i}" value="${g.name}" placeholder="Your abstract goal"><input type="text" class="setup-input" id="goalValues${i}" value="${g.values}" placeholder="Values"><div class="energy-label-row"><span class="energy-badge badge-high">High Energy</span></div><div class="actions-setup" id="highActions${i}">${highRows}</div><button class="add-action-btn" onclick="addAction(${i},'high')">+ Add action</button><div class="energy-label-row"><span class="energy-badge badge-low">Low Energy</span></div><div class="actions-setup" id="lowActions${i}">${lowRows}</div><button class="add-action-btn" onclick="addAction(${i},'low')">+ Add action</button></div>`;
   }
-  const targetPrefill=[{name:'Gym sessions',goal:20},{name:'Pottery',goal:4},{name:'Camping trip',goal:1}];
-  const targetSetupRows=targetPrefill.map((t,i)=>`<div class="target-setup-row"><input class="target-setup-name" id="tName${i}" value="${t.name}" placeholder="Target name"><input class="target-setup-goal" id="tGoal${i}" type="number" value="${t.goal}" min="1"><span class="target-setup-mo">/ mo</span></div>`).join('');
+  const targetPrefill=[{name:'Gym sessions',goal:20,hyp:'I think if I lift consistently I\'ll feel more grounded in my body'},{name:'Pottery',goal:4,hyp:'I think if I show up to the studio I\'ll reconnect with making things'},{name:'Camping trip',goal:1,hyp:'I think if I plan this it will actually happen'}];
+  const targetSetupRows=targetPrefill.map((t,i)=>`<div style="margin-bottom:14px"><div style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><input class="target-setup-name" id="tName${i}" value="${t.name}" placeholder="Target name"><input class="target-setup-goal" id="tGoal${i}" type="number" value="${t.goal}" min="1"><span class="target-setup-mo">/ mo</span></div><input class="target-hypothesis" id="tHyp${i}" value="${t.hyp}" placeholder="I think if I do this..."></div>`).join('');
   document.getElementById('setupScreen').innerHTML=`<div class="header"><div class="header-eyebrow">Meridian</div><h1>Your <em>quarter</em></h1></div><p class="setup-intro">Name your quarter, define your three abstract goals, and build your action menus. You only do this once every three months.</p><div class="setup-card"><div class="setup-section-title">Quarter</div><div class="setup-section-sub">Name this season of your life</div><input type="text" class="setup-input" id="quarterName" value="Spring 2026" placeholder="Quarter name"><div class="quarter-setup-grid"><div><label class="field-label">Start</label><input type="date" class="setup-input" id="quarterStart" value="${today}" style="margin-bottom:0"></div><div><label class="field-label">End</label><input type="date" class="setup-input" id="quarterEnd" value="${endStr}" style="margin-bottom:0"></div></div></div>${goalsHTML}<div class="setup-card"><div class="setup-section-title">Monthly Targets</div><div class="setup-section-sub">Three micro-experiments — tracked fresh each month</div>${targetSetupRows}</div><button class="big-btn" id="beginBtn" onclick="saveSetup()">→ Begin This Quarter</button>`;
 }
 function addAction(goalIndex,energy){const container=document.getElementById(`${energy}Actions${goalIndex}`);const row=document.createElement('div');row.className='action-setup-row';row.innerHTML=`<input class="action-setup-input" placeholder="Add an action..." type="text"><button class="remove-action-btn" onclick="removeAction(this)">×</button>`;container.appendChild(row);}
@@ -302,8 +319,8 @@ async function saveSetup(){
     goals.push({name:goalName,values:document.getElementById(`goalValues${i}`).value.trim(),actions:{high:Array.from(document.querySelectorAll(`#highActions${i} .action-setup-input`)).map(el=>el.value.trim()).filter(Boolean),low:Array.from(document.querySelectorAll(`#lowActions${i} .action-setup-input`)).map(el=>el.value.trim()).filter(Boolean)}});
   }
   const btn=document.getElementById('beginBtn');btn.disabled=true;btn.textContent='Saving...';
-  const targets=[];for(let i=0;i<3;i++){const n=document.getElementById(`tName${i}`)?.value.trim();const g=parseInt(document.getElementById(`tGoal${i}`)?.value)||1;if(n)targets.push({name:n,goal:g});}
-  const quarter={id:'q-'+Date.now(),name,start,end,goals,targets};
+  const m0=[];for(let i=0;i<3;i++){const n=document.getElementById(`tName${i}`)?.value.trim();const g=parseInt(document.getElementById(`tGoal${i}`)?.value)||1;const h=document.getElementById(`tHyp${i}`)?.value.trim()||'';if(n)m0.push({name:n,goal:g,hypothesis:h});}
+  const quarter={id:'q-'+Date.now(),name,start,end,goals,targets:[m0,[],[]]};
   try{
     await upsertQuarter(quarter);
     state.quarters.push(quarter);state.activeQuarterId=quarter.id;state.today={energy:'high',checked:{},date:todayStr()};
@@ -329,43 +346,58 @@ async function loadSummaryAsync(q){const start=new Date(q.start+'T00:00:00');con
 async function loadStarsAsync(q){const stars=await loadStars(q.id);const starsEl=document.getElementById('starsCount');if(starsEl)starsEl.textContent=stars.length;const log=document.getElementById('starsLog');if(!log)return;if(stars.length===0){log.innerHTML='';return;}log.innerHTML=stars.slice(0,6).map(s=>`<div class="star-entry"><span>★ ${s.text}</span><span class="star-entry-date">${formatDateShort(s.date)}</span></div>`).join('');}
 async function saveStarEntry(){const input=document.getElementById('goldStarInput');input.blur();const q=activeQuarter();if(!q)return;const text=input.value.trim();if(!text)return;await insertStar(q.id,text);input.value='';await loadStarsAsync(q);showToast('★ Gold star logged');}
 let currentTargetLogs=[];
+let activeTargetMonth=0;
 async function loadTargetsAsync(q){
   const section=document.getElementById('targetsSection');if(!section)return;
-  if(!q.targets||q.targets.length===0){renderTargets(q);return;}
-  const month=currentMonth();
+  // Migrate flat format to monthly format
+  if(q.targets&&q.targets.length>0&&!Array.isArray(q.targets[0])){q.targets=[q.targets,[],[]];const qi=state.quarters.findIndex(x=>x.id===q.id);if(qi>=0)state.quarters[qi].targets=q.targets;}
+  else if(!q.targets||q.targets.length===0){q.targets=[[],[],[]];const qi=state.quarters.findIndex(x=>x.id===q.id);if(qi>=0)state.quarters[qi].targets=q.targets;}
+  const month=quarterMonthStr(q,activeTargetMonth);
   currentTargetLogs=await loadTargetLogs(q.id,month);
   renderTargets(q);
 }
 function renderTargets(q){
   const section=document.getElementById('targetsSection');if(!section)return;
-  if(!q.targets||q.targets.length===0){
-    section.innerHTML=`<div class="target-setup-card"><div class="setup-section-title" style="margin-bottom:4px">Monthly Targets</div><div class="setup-section-sub" style="margin-bottom:16px">Three micro-experiments — tracked fresh each month</div>${[0,1,2].map(i=>`<div class="target-setup-row"><input class="target-setup-name" id="itName${i}" placeholder="Target name"><input class="target-setup-goal" id="itGoal${i}" type="number" value="1" min="1"><span class="target-setup-mo">/ mo</span></div>`).join('')}<button class="big-btn" style="margin-top:4px" onclick="saveInlineTargets()">Save targets</button></div>`;
+  const tabs=[0,1,2].map(mi=>`<button class="target-month-tab${mi===activeTargetMonth?' active':''}" onclick="switchTargetMonth(${mi})">${quarterMonthName(q,mi)}</button>`).join('');
+  const monthTargets=(q.targets&&q.targets[activeTargetMonth])||[];
+  const monthName=quarterMonthName(q,activeTargetMonth);
+  section.innerHTML=`<div class="target-month-tabs">${tabs}</div><div id="targetCards"></div>`;
+  const cardsEl=document.getElementById('targetCards');
+  if(monthTargets.length===0){
+    cardsEl.innerHTML=`<div class="target-setup-card"><div class="setup-section-title" style="margin-bottom:4px">${monthName} Targets</div><div class="setup-section-sub" style="margin-bottom:16px">Three micro-experiments for this month</div>${[0,1,2].map(i=>`<div style="margin-bottom:14px"><div style="display:flex;gap:8px;align-items:center;margin-bottom:8px"><input class="target-setup-name" id="itName${i}" placeholder="Target name"><input class="target-setup-goal" id="itGoal${i}" type="number" value="1" min="1"><span class="target-setup-mo">/ mo</span></div><input class="target-hypothesis" id="itHyp${i}" placeholder="I think if I do this..."></div>`).join('')}<button class="big-btn" style="margin-top:4px" onclick="saveInlineTargets()">Save ${monthName} targets</button></div>`;
     return;
   }
-  const month=currentMonth();const monthName=currentMonthLabel();
-  section.innerHTML='';
-  q.targets.forEach((target,ti)=>{
+  monthTargets.forEach((target,ti)=>{
     const count=currentTargetLogs.filter(l=>l.target_index===ti).length;
     const goal=target.goal||1;
+    const complete=count>=goal;
     const dotCount=Math.min(goal,30);
-    const dots=Array.from({length:dotCount},(_,i)=>`<div class="target-dot ${i<count?'filled':'empty'}"></div>`).join('');
+    const dots=Array.from({length:dotCount},(_,i)=>`<div class="target-dot ${i<Math.min(count,dotCount)?'filled':'empty'}"></div>`).join('');
     const card=document.createElement('div');
-    card.className=`target-card target-${ti}`;
-    card.innerHTML=`<div class="target-top"><div class="target-name">${target.name}</div><div class="target-month-label">${monthName}</div></div><div class="target-count-row"><span class="target-num">${count}</span><span class="target-of">/ ${goal}</span></div><div class="target-dots">${dots}</div><div class="target-btns"><button class="target-log-btn" onclick="logTarget(${ti})">+ Log one</button><button class="target-undo-btn" onclick="undoTarget(${ti})" ${count===0?'disabled':''}>Undo</button></div>`;
-    section.appendChild(card);
+    card.className=`target-card target-${ti}${complete?' complete':''}`;
+    card.innerHTML=`<div class="target-top"><div class="target-name">${target.name}</div>${complete?`<span class="target-complete-badge">✓ Done</span>`:''}</div><input class="target-hypothesis" value="${target.hypothesis||''}" placeholder="I think if I do this..." onblur="updateHypothesis(${ti},this.value)"><div class="target-count-row"><span class="target-num">${count}</span><span class="target-of">/ ${goal}</span></div><div class="target-dots">${dots}</div><div class="target-btns"><button class="target-log-btn" onclick="logTarget(${ti})"${complete?' disabled':''}>+1</button><button class="target-undo-btn" onclick="undoTarget(${ti})"${count===0?' disabled':''}>Undo</button></div>`;
+    cardsEl.appendChild(card);
   });
+}
+async function switchTargetMonth(mi){
+  activeTargetMonth=mi;
+  const q=activeQuarter();if(!q)return;
+  currentTargetLogs=await loadTargetLogs(q.id,quarterMonthStr(q,mi));
+  renderTargets(q);
 }
 async function logTarget(ti){
   const q=activeQuarter();if(!q||!q.targets)return;
-  const month=currentMonth();
+  const month=quarterMonthStr(q,activeTargetMonth);
   await addTargetLogEntry(q.id,ti,month);
   currentTargetLogs=await loadTargetLogs(q.id,month);
   renderTargets(q);
-  showToast('Logged ✓');
+  const goal=(q.targets[activeTargetMonth]||[])[ti]?.goal||1;
+  const count=currentTargetLogs.filter(l=>l.target_index===ti).length;
+  showToast(count>=goal?'Target hit!':'Logged ✓');
 }
 async function undoTarget(ti){
   const q=activeQuarter();if(!q||!q.targets)return;
-  const month=currentMonth();
+  const month=quarterMonthStr(q,activeTargetMonth);
   await removeLastTargetLogEntry(q.id,ti,month);
   currentTargetLogs=await loadTargetLogs(q.id,month);
   renderTargets(q);
@@ -373,12 +405,21 @@ async function undoTarget(ti){
 async function saveInlineTargets(){
   const q=activeQuarter();if(!q)return;
   const targets=[];
-  for(let i=0;i<3;i++){const n=document.getElementById(`itName${i}`)?.value.trim();const g=parseInt(document.getElementById(`itGoal${i}`)?.value)||1;if(n)targets.push({name:n,goal:g});}
+  for(let i=0;i<3;i++){const n=document.getElementById(`itName${i}`)?.value.trim();const g=parseInt(document.getElementById(`itGoal${i}`)?.value)||1;const h=document.getElementById(`itHyp${i}`)?.value.trim()||'';if(n)targets.push({name:n,goal:g,hypothesis:h});}
   if(targets.length===0){showToast('Add at least one target');return;}
-  q.targets=targets;
-  const qi=state.quarters.findIndex(x=>x.id===q.id);if(qi>=0)state.quarters[qi].targets=targets;
+  if(!q.targets||!Array.isArray(q.targets[0]))q.targets=[[],[],[]];
+  q.targets[activeTargetMonth]=targets;
+  const qi=state.quarters.findIndex(x=>x.id===q.id);if(qi>=0)state.quarters[qi].targets=q.targets;
   await upsertQuarter(q);
-  await loadTargetsAsync(q);
+  currentTargetLogs=await loadTargetLogs(q.id,quarterMonthStr(q,activeTargetMonth));
+  renderTargets(q);
+}
+async function updateHypothesis(ti,value){
+  const q=activeQuarter();
+  if(!q||!q.targets||!q.targets[activeTargetMonth]||!q.targets[activeTargetMonth][ti])return;
+  q.targets[activeTargetMonth][ti].hypothesis=value;
+  const qi=state.quarters.findIndex(x=>x.id===q.id);if(qi>=0)state.quarters[qi].targets=q.targets;
+  await upsertQuarter(q);
 }
 async function toggleHistory(){const list=document.getElementById('historyList');const arrow=document.getElementById('historyArrow');if(!list)return;const isHidden=list.style.display==='none';if(isHidden){list.style.display='flex';if(arrow)arrow.textContent='↑';const q=activeQuarter();const history=await loadHistory(q.id);if(history.length===0){list.innerHTML='<div style="font-size:10px;color:var(--text-dimmer);letter-spacing:0.1em">No past check-ins yet.</div>';return;}list.innerHTML=history.slice(0,20).map(e=>{const count=Object.values(e.checked||{}).filter(Boolean).length;return`<div class="history-entry"><span class="history-date">${formatDateShort(e.date)}</span><span class="history-count">${count} action${count!==1?'s':''}</span><span class="history-energy">${e.energy||''}</span></div>`;}).join('');}else{list.style.display='none';if(arrow)arrow.textContent='↓';}}
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2400);}
